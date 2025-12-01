@@ -129,7 +129,7 @@ public:
 };
 
 // =============================
-//    DELIVERY NODE (Linked List)
+//    DELIVERY NODE
 // =============================
 class DeliveryNode
 {
@@ -374,7 +374,7 @@ OrderNode *findOrder(OrderNode *ref, int orderNo)
 // =============================
 //    AVL LINEAR SEARCH (O(n))
 // =============================
-// NEW: This traverses the tree blindly to simulate linear search
+
 OrderNode *linearSearchAVL(OrderNode *ref, int orderNo)
 {
     if (!ref)
