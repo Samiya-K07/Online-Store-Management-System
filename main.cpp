@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
-#include <fstream>   // For file handling
-#include <sstream>   // For string parsing
-#include <ctime>     // For clock()
-#include <algorithm> // For max()
+#include <fstream>
+#include <sstream>
+#include <ctime>
+#include <algorithm>
 
 using namespace std;
 
@@ -16,9 +16,9 @@ using namespace std;
 
 string cityNamesList[NUM_CITIES] =
 {
-    "Karachi",   // Index 0
-    "Lahore",    // Index 1
-    "Islamabad"  // Index 2 (Store Location)
+    "Karachi",
+    "Lahore",
+    "Islamabad"
 };
 
 // Distance graph (in km)
@@ -30,7 +30,7 @@ int cityGraph[NUM_CITIES][NUM_CITIES] =
 };
 
 // =============================
-//    CITY NETWORK (DIJKSTRA)
+//    CITY NETWORK
 // =============================
 class CityNetwork
 {
@@ -105,7 +105,7 @@ public:
 };
 
 // =============================
-//    ORDER CLASS (UPDATED WITH ID)
+//    ORDER CLASS
 // =============================
 class Order
 {
@@ -353,7 +353,7 @@ OrderNode *addOrder(OrderNode *ref, string buyer, string item, int count, double
 // =============================
 //    AVL SEARCH (O(log n))
 // =============================
-// This uses the sorted property to skip halves of the tree
+
 OrderNode *findOrder(OrderNode *ref, int orderNo)
 {
     if (!ref)
@@ -813,4 +813,5 @@ int main()
 
     cleanupSystem();
     return 0;
+
 }
