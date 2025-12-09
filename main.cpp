@@ -4,29 +4,26 @@
 #include <sstream>
 #include <ctime>
 #include <algorithm>
-
+#include <limits>
 using namespace std;
 
 // =============================
 //    CITY GRAPH CONFIGURATION
 // =============================
-
 #define NUM_CITIES 3
 #define INF 99999
 
 string cityNamesList[NUM_CITIES] =
-{
-    "Karachi",
-    "Lahore",
-    "Islamabad"
-};
+    {
+        "Karachi",
+        "Lahore",
+        "Islamabad"};
 
-// Distance graph (in km)
 int cityGraph[NUM_CITIES][NUM_CITIES] =
-{
-    {0, 10, 15},   // Karachi -> Lahore, Islamabad
-    {10, 0, 12},   // Lahore -> Karachi, Islamabad
-    {15, 12, 0}    // Islamabad -> Karachi, Lahore
+    {
+        {0, 10, 15}, // Karachi -> Lahore, Islamabad
+        {10, 0, 12}, // Lahore -> Karachi, Islamabad
+        {15, 12, 0}  // Islamabad -> Karachi, Lahore
 };
 
 // =============================
@@ -53,7 +50,6 @@ public:
     int minDistance(int dist[], bool visited[])
     {
         int min = INF, minIndex = -1;
-
         for (int i = 0; i < NUM_CITIES; i++)
         {
             if (!visited[i] && dist[i] <= min)
@@ -85,9 +81,7 @@ public:
             {
                 break;
             }
-
             visited[u] = true;
-
             for (int v = 0; v < NUM_CITIES; v++)
             {
                 if (!visited[v] &&
@@ -99,13 +93,12 @@ public:
                 }
             }
         }
-
         return dist[dest];
     }
 };
 
 // =============================
-//    ORDER CLASS
+//    ORDER CLASS (Data Payload)
 // =============================
 class Order
 {
@@ -114,9 +107,9 @@ public:
     string itemName;
     int itemCount;
     double totalCost;
-    int orderID; // Added for Benchmarking
+    int orderID;
 
-    Order() {}
+    Order() : customerName(""), itemName(""), itemCount(0), totalCost(0.0), orderID(0) {} // Default constructor with safe values
 
     Order(string name, string item, int count, double cost, int id)
     {
@@ -129,7 +122,7 @@ public:
 };
 
 // =============================
-//    DELIVERY NODE
+//    DELIVERY NODE (Linked List for active deliveries)
 // =============================
 class DeliveryNode
 {
@@ -151,6 +144,22 @@ public:
 };
 
 // =============================
+//    COMPLETED ORDER LIST
+// =============================
+class CompletedOrderNode
+{
+public:
+    Order orderInfo;
+    CompletedOrderNode *next;
+
+    CompletedOrderNode(Order order)
+    {
+        orderInfo = order;
+        next = NULL;
+    }
+};
+
+// =============================
 //    ELECTRONICS STORE CLASS
 // =============================
 class ElectronicsStore
@@ -161,15 +170,16 @@ public:
     int *itemPrices;
     string storeAddress;
     DeliveryNode *deliveryHead;
+    CompletedOrderNode *completedHead; 
 
     ElectronicsStore()
     {
         deliveryHead = NULL;
+        completedHead = NULL; 
         itemList = NULL;
         itemPrices = NULL;
     }
 
-    // Updated to accept ID and silent mode
     void addDeliveryOrder(string name, string item, int count, double cost, string address, double fee, int dist, int id, bool silent = false)
     {
         DeliveryNode *newNode = new DeliveryNode(name, item, count, cost, address, fee, dist, id);
@@ -178,6 +188,7 @@ public:
         {
             deliveryHead = newNode;
         }
+        
         else
         {
             DeliveryNode *temp = deliveryHead;
@@ -185,6 +196,7 @@ public:
             {
                 temp = temp->nextNode;
             }
+            
             temp->nextNode = newNode;
         }
 
@@ -202,22 +214,86 @@ public:
     {
         if (deliveryHead == NULL)
         {
-            cout << "No delivery orders yet." << endl;
+            cout << "No delivery orders in the queue." << endl;
             return;
         }
 
         DeliveryNode *temp = deliveryHead;
-        cout << endl << "===== ALL DELIVERY ORDERS =====" << endl;
+        cout << endl << "===== ACTIVE DELIVERY ORDERS =====" << endl;
 
         while (temp != NULL)
         {
             cout << "------------------------------------------" << endl;
             cout << "ID: " << temp->orderInfo.orderID << " | Customer: " << temp->orderInfo.customerName << endl;
             cout << "Item: " << temp->orderInfo.itemName << endl;
-            cout << "Bill: Rs." << temp->orderInfo.totalCost << endl;
             cout << "Address: " << temp->deliveryAddress << endl;
             cout << "------------------------------------------" << endl;
             temp = temp->nextNode;
+        }
+    }
+
+    Order processNextDelivery()
+    {
+        if (deliveryHead == NULL)
+        {
+            return Order(); 
+        }
+
+        DeliveryNode *deliveredOrder = deliveryHead;
+        Order completedOrderData = deliveredOrder->orderInfo; 
+
+        cout << endl << "****** Delivery Completed ******" << endl;
+        cout << "Order ID: " << completedOrderData.orderID << endl;
+        cout << "Customer: " << completedOrderData.customerName << endl;
+        cout << "--------------------------------" << endl;
+
+        deliveryHead = deliveredOrder->nextNode;
+
+        delete deliveredOrder;
+
+        return completedOrderData; 
+    }
+
+    void archiveOrder(Order completedOrder)
+    {
+        CompletedOrderNode *newNode = new CompletedOrderNode(completedOrder);
+
+        if (completedHead == NULL)
+        {
+            completedHead = newNode;
+        }
+        
+        else
+        {
+            CompletedOrderNode *temp = completedHead;
+            while (temp->next != NULL)
+            {
+                temp = temp->next;
+            }
+            
+            temp->next = newNode;
+        }
+    }
+
+    void displayCompletedOrders()
+    {
+        if (completedHead == NULL)
+        {
+            cout << "The completed order list is empty." << endl;
+            return;
+        }
+        
+        cout << endl << "===== COMPLETED ORDER HISTORY (Chronological Order) =====" << endl;
+        CompletedOrderNode *temp = completedHead;
+        
+        while (temp != NULL)
+        {
+            cout << "------------------------------------------" << endl;
+            cout << "ID: " << temp->orderInfo.orderID << " | Customer: " << temp->orderInfo.customerName << endl;
+            cout << "Item: " << temp->orderInfo.itemName << " (x" << temp->orderInfo.itemCount << ")" << endl;
+            cout << "Total Bill: Rs." << temp->orderInfo.totalCost << endl;
+            cout << "------------------------------------------" << endl;
+            temp = temp->next;
         }
     }
 
@@ -230,13 +306,22 @@ public:
             temp = temp->nextNode;
             delete del;
         }
+
+        CompletedOrderNode *compTemp = completedHead;
+        while (compTemp != NULL)
+        {
+            CompletedOrderNode *del = compTemp;
+            compTemp = compTemp->next;
+            delete del;
+        }
+
         delete[] itemList;
         delete[] itemPrices;
     }
 };
 
 // =============================
-//    AVL TREE NODE
+//    AVL TREE NODE (For Pickup/All Orders)
 // =============================
 class OrderNode
 {
@@ -271,6 +356,7 @@ int getHeight(OrderNode *ref)
     {
         return -1;
     }
+
     int leftH = getHeight(ref->leftBranch);
     int rightH = getHeight(ref->rightBranch);
     return max(leftH, rightH) + 1;
@@ -282,6 +368,7 @@ int getBalance(OrderNode *ref)
     {
         return 0;
     }
+
     return getHeight(ref->leftBranch) - getHeight(ref->rightBranch);
 }
 
@@ -330,9 +417,15 @@ OrderNode *addOrder(OrderNode *ref, string buyer, string item, int count, double
     {
         ref->leftBranch = addOrder(ref->leftBranch, buyer, item, count, cost, orderNo);
     }
+    
     else if (orderNo > ref->orderNumber)
     {
         ref->rightBranch = addOrder(ref->rightBranch, buyer, item, count, cost, orderNo);
+    }
+    
+    else 
+    {
+        return ref;
     }
 
     int bf = getBalance(ref);
@@ -351,48 +444,43 @@ OrderNode *addOrder(OrderNode *ref, string buyer, string item, int count, double
 }
 
 // =============================
-//    AVL SEARCH (O(log n))
+//    AVL SEARCH
 // =============================
-
 OrderNode *findOrder(OrderNode *ref, int orderNo)
 {
     if (!ref)
     {
         return NULL;
     }
+    
     if (orderNo == ref->orderNumber)
     {
         return ref;
     }
+    
     if (orderNo < ref->orderNumber)
     {
         return findOrder(ref->leftBranch, orderNo);
     }
+
     return findOrder(ref->rightBranch, orderNo);
 }
 
 // =============================
-//    AVL LINEAR SEARCH (O(n))
+//    AVL LINEAR SEARCH (For Benchmarking)
 // =============================
-
 OrderNode *linearSearchAVL(OrderNode *ref, int orderNo)
 {
     if (!ref)
-    {
         return NULL;
-    }
-    
-    // Check current node
+
     if (ref->orderNumber == orderNo)
-    {
         return ref;
-    }
 
-    // Search entire left subtree
     OrderNode *res = linearSearchAVL(ref->leftBranch, orderNo);
-    if (res != NULL) return res;
+    if (res != NULL)
+        return res;
 
-    // Search entire right subtree
     return linearSearchAVL(ref->rightBranch, orderNo);
 }
 
@@ -411,18 +499,18 @@ OrderNode *findMin(OrderNode *ref)
 OrderNode *removeOrder(OrderNode *ref, int orderNo)
 {
     if (!ref)
-    {
         return NULL;
-    }
 
     if (orderNo < ref->orderNumber)
     {
         ref->leftBranch = removeOrder(ref->leftBranch, orderNo);
     }
+    
     else if (orderNo > ref->orderNumber)
     {
         ref->rightBranch = removeOrder(ref->rightBranch, orderNo);
     }
+    
     else
     {
         if (!ref->leftBranch || !ref->rightBranch)
@@ -440,19 +528,26 @@ OrderNode *removeOrder(OrderNode *ref, int orderNo)
         ref->rightBranch = removeOrder(ref->rightBranch, succ->orderNumber);
     }
 
+    if (!ref)
+        return ref;
+
     int bf = getBalance(ref);
+    
     if (bf > 1 && getBalance(ref->leftBranch) >= 0)
     {
         return rotateLL(ref);
     }
+    
     if (bf > 1 && getBalance(ref->leftBranch) < 0)
     {
         return rotateLR(ref);
     }
+    
     if (bf < -1 && getBalance(ref->rightBranch) <= 0)
     {
         return rotateRR(ref);
     }
+    
     if (bf < -1 && getBalance(ref->rightBranch) > 0)
     {
         return rotateRL(ref);
@@ -477,9 +572,8 @@ void printOrder(OrderNode *ref)
 void showAllOrders(OrderNode *ref)
 {
     if (!ref)
-    {
         return;
-    }
+    
     showAllOrders(ref->leftBranch);
     printOrder(ref);
     showAllOrders(ref->rightBranch);
@@ -495,105 +589,6 @@ CityNetwork *network = nullptr;
 int globalNextOrderId = 1001; // Global ID tracker
 
 // =============================
-//    BENCHMARKING FUNCTIONS
-// =============================
-void loadBenchmarks(string filename)
-{
-    ifstream file(filename.c_str());
-    if (!file.is_open())
-    {
-        cout << "Could not open " << filename << endl;
-        return;
-    }
-
-    string line;
-    int count = 0;
-    cout << endl << "Loading 500 records into AVL Tree and Linked List..." << endl;
-
-    clock_t start = clock();
-
-    while (getline(file, line))
-    {
-        stringstream ss(line);
-        string idStr, name, item, qtyStr, costStr, distStr, addr;
-
-        if (getline(ss, idStr, ',') &&
-            getline(ss, name, ',') &&
-            getline(ss, item, ',') &&
-            getline(ss, qtyStr, ',') &&
-            getline(ss, costStr, ',') &&
-            getline(ss, distStr, ',') &&
-            getline(ss, addr, ','))
-        {
-
-            int id = stoi(idStr);
-            int qty = stoi(qtyStr);
-            double cost = stod(costStr);
-            int dist = stoi(distStr);
-
-            // Insert into AVL (O(log n))
-            orderTreeRoot = addOrder(orderTreeRoot, name, item, qty, cost, id);
-
-            // Insert into List (also kept to maintain project structure)
-            storePtr->addDeliveryOrder(name, item, qty, cost, addr, 0, dist, id, true);
-
-            count++;
-            globalNextOrderId = id + 1;
-        }
-    }
-
-    clock_t end = clock();
-    double duration = double(end - start) / CLOCKS_PER_SEC * 1000;
-    cout << "Loaded " << count << " records in " << duration << " ms." << endl;
-    file.close();
-}
-
-void runPerformanceTest()
-{
-    if (!orderTreeRoot)
-    {
-        cout << "Please Load Data first (Option 7)." << endl;
-        return;
-    }
-
-    int targetID = globalNextOrderId - 1; // Pick a valid ID (last inserted)
-    cout << endl << "===== BENCHMARK RESULTS (N=500) =====" << endl;
-    cout << "Comparing Search Algorithms on the SAME Data Structure (AVL Tree)" << endl;
-    cout << "Searching for ID: " << targetID << endl;
-    cout << "Running 100,000 iterations for accuracy." << endl;
-
-    // 1. AVL Standard Search (Logarithmic)
-    clock_t startAVL = clock();
-    for (int i = 0; i < 100000; i++)
-    {
-        findOrder(orderTreeRoot, targetID);
-    }
-    clock_t endAVL = clock();
-    double timeAVL = double(endAVL - startAVL) / CLOCKS_PER_SEC * 1000;
-
-    // 2. Linear Search on AVL (Linear)
-    clock_t startLinear = clock();
-    for (int i = 0; i < 100000; i++)
-    {
-        linearSearchAVL(orderTreeRoot, targetID);
-    }
-    clock_t endLinear = clock();
-    double timeLinear = double(endLinear - startLinear) / CLOCKS_PER_SEC * 1000;
-
-    cout << endl << "-----------------------------------------------------" << endl;
-    cout << "ALGORITHM\t\t| TIME (ms)\t| COMPLEXITY" << endl;
-    cout << "-----------------------------------------------------" << endl;
-    cout << "AVL Tree Search\t\t| " << timeAVL << " ms\t| O(log n)" << endl;
-    cout << "Linear Search (Brute)\t| " << timeLinear << " ms\t| O(n)" << endl;
-    cout << "-----------------------------------------------------" << endl;
-    
-    if (timeLinear > timeAVL)
-        cout << "VERDICT: AVL Search is " << (timeLinear/timeAVL) << "x faster than Linear Search." << endl;
-    else
-        cout << "VERDICT: Dataset too small to show significant difference." << endl;
-}
-
-// =============================
 //    HELPER FUNCTIONS
 // =============================
 
@@ -601,6 +596,7 @@ int selectCity(string prompt)
 {
     int choice;
     cout << endl << prompt << endl;
+    
     for (int i = 0; i < NUM_CITIES; i++)
     {
         cout << i + 1 << ". " << cityNamesList[i] << endl;
@@ -671,13 +667,116 @@ void displayMenu()
     cout << "1. View Products" << endl;
     cout << "2. Place Pickup Order" << endl;
     cout << "3. Place Delivery Order" << endl;
-    cout << "4. Collect Pickup Order" << endl;
-    cout << "5. View All Delivery Orders" << endl;
-    cout << "6. View All Pickup Orders" << endl;
-    cout << "7. Load Data & Test Speed" << endl;
+    cout << "4. Perform Delivery (Process Queue)" << endl;
+    cout << "5. Collect Pickup Order" << endl;
+    cout << "6. View All Active Delivery Orders" << endl;
+    cout << "7. View All Pending Pickup Orders" << endl;
+    cout << "8. View Completed Orders History" << endl; 
+    cout << "9. Load Data & Test Speed" << endl;
     cout << "0. Exit" << endl;
     cout << "Enter your choice: ";
 }
+
+// =============================
+//    BENCHMARKING FUNCTIONS
+// =============================
+void loadBenchmarks(string filename)
+{
+    ifstream file(filename.c_str());
+    if (!file.is_open())
+    {
+        cout << "Could not open " << filename << ". Please create a dummy file with 500 records." << endl;
+        return;
+    }
+
+    string line;
+    int count = 0;
+    cout << endl << "Loading 500 records into AVL Tree and Linked List..." << endl;
+
+    clock_t start = clock();
+
+    while (getline(file, line))
+    {
+        stringstream ss(line);
+        string idStr, name, item, qtyStr, costStr, distStr, addr;
+
+        if (getline(ss, idStr, ',') &&
+            getline(ss, name, ',') &&
+            getline(ss, item, ',') &&
+            getline(ss, qtyStr, ',') &&
+            getline(ss, costStr, ',') &&
+            getline(ss, distStr, ',') &&
+            getline(ss, addr, ','))
+        {
+            int id = stoi(idStr);
+            int qty = stoi(qtyStr);
+            double cost = stod(costStr);
+            int dist = stoi(distStr);
+
+            orderTreeRoot = addOrder(orderTreeRoot, name, item, qty, cost, id);
+
+            storePtr->addDeliveryOrder(name, item, qty, cost, addr, 0, dist, id, true);
+
+            count++;
+            globalNextOrderId = id + 1;
+        }
+    }
+
+    clock_t end = clock();
+    double duration = double(end - start) / CLOCKS_PER_SEC * 1000;
+    cout << "Loaded " << count << " records in " << duration << " ms." << endl;
+    file.close();
+}
+
+void runPerformanceTest()
+{
+    if (!orderTreeRoot)
+    {
+        cout << "Please Load Data first (Option 9)." << endl;
+        return;
+    }
+
+    int targetID = globalNextOrderId - 1; // Pick a valid ID (last inserted)
+    cout << endl << "===== BENCHMARK RESULTS (N=500) =====" << endl;
+    cout << "Comparing Search Algorithms on the SAME Data Structure (AVL Tree)" << endl;
+    cout << "Searching for ID: " << targetID << endl;
+    cout << "Running 100,000 iterations for accuracy." << endl;
+
+    // 1. AVL Standard Search (Logarithmic)
+    clock_t startAVL = clock();
+    for (int i = 0; i < 100000; i++)
+    {
+        findOrder(orderTreeRoot, targetID);
+    }
+    clock_t endAVL = clock();
+    double timeAVL = double(endAVL - startAVL) / CLOCKS_PER_SEC * 1000;
+
+    // 2. Linear Search on AVL (Linear)
+    clock_t startLinear = clock();
+    for (int i = 0; i < 100000; i++)
+    {
+        linearSearchAVL(orderTreeRoot, targetID);
+    }
+    clock_t endLinear = clock();
+    double timeLinear = double(endLinear - startLinear) / CLOCKS_PER_SEC * 1000;
+
+    cout << endl << "-----------------------------------------------------" << endl;
+    cout << "ALGORITHM\t\t| TIME (ms)\t| COMPLEXITY" << endl;
+    cout << "-----------------------------------------------------" << endl;
+    cout << "AVL Tree Search\t\t| " << timeAVL << " ms\t| O(log n)" << endl;
+    cout << "Linear Search (Brute)\t| " << timeLinear << " ms\t| O(n)" << endl;
+    cout << "-----------------------------------------------------" << endl;
+
+    if (timeLinear > timeAVL)
+        cout << "VERDICT: AVL Search is " << (timeLinear / timeAVL) << "x faster than Linear Search." << endl;
+    
+    else
+        cout << "VERDICT: Dataset too small to show significant difference." << endl;
+}
+
+// =============================
+//    MAIN FUNCTION (Control Flow)
+// =============================
 
 int main()
 {
@@ -687,30 +786,31 @@ int main()
     do
     {
         cout << endl << endl << "************************************************" << endl;
-        cout << "        " << storePtr->storeName << endl;
+        cout << "          " << storePtr->storeName << endl;
         cout << "************************************************" << endl;
 
         displayMenu();
         if (!(cin >> choice))
         {
             cin.clear();
-            cin.ignore(10000, '\n');
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             choice = -1;
         }
 
-        string customerName;
+        string customerName, fullAddress;
         int quantity, itemNumber, distance, orderNumber;
-        double totalBill;
+        double totalBill, deliveryFee;
+        Order archivedOrder;
 
         switch (choice)
         {
-        case 1:
+        case 1: 
         {
             displayProducts();
             break;
         }
 
-        case 2:
+        case 2: 
         {
             cout << endl << "--- PLACE PICKUP ORDER ---" << endl;
             cout << "Name: ";
@@ -723,15 +823,17 @@ int main()
 
             orderNumber = globalNextOrderId++;
             totalBill = quantity * storePtr->itemPrices[itemNumber];
+
+            // Insert into AVL Tree
             orderTreeRoot = addOrder(orderTreeRoot, customerName, storePtr->itemList[itemNumber], quantity, totalBill, orderNumber);
             cout << "Order Placed! ID: #" << orderNumber << endl;
             break;
         }
 
-        case 3:
+        case 3: // Place Delivery Order
         {
             cout << endl << "---- PLACE DELIVERY ORDER ----" << endl;
-            int srcCity = 0;
+            int srcCity = 0; // Assuming store is located in Karachi (Index 0)
             int destCity = selectCity("Select Delivery City:");
 
             cout << "Name: ";
@@ -743,75 +845,105 @@ int main()
             cin >> quantity;
 
             distance = network->computeShortestDistance(srcCity, destCity);
-            int deliveryFee = calculateDeliveryFee(distance);
+            deliveryFee = calculateDeliveryFee(distance);
             totalBill = (quantity * storePtr->itemPrices[itemNumber]) + deliveryFee;
-            string fullAddress = cityNamesList[destCity];
+            fullAddress = cityNamesList[destCity];
             orderNumber = globalNextOrderId++;
 
             storePtr->addDeliveryOrder(customerName, storePtr->itemList[itemNumber], quantity, totalBill, fullAddress, deliveryFee, distance, orderNumber);
-            cout << "Delivery Order Placed! ID: #" << orderNumber << endl;
+
             cout << "Distance: " << distance << "km | Fee: " << deliveryFee << endl;
             break;
         }
 
-        case 4:
+        case 4: 
         {
-            cout << "Enter Order ID: ";
-            cin >> orderNumber;
-            OrderNode *foundOrder = findOrder(orderTreeRoot, orderNumber);
-            if (!foundOrder)
+            cout << endl << "--- PERFORM NEXT DELIVERY ---" << endl;
+
+            archivedOrder = storePtr->processNextDelivery();
+
+            if (archivedOrder.orderID != 0)
             {
-                cout << "Order not found!" << endl;
+                storePtr->archiveOrder(archivedOrder);
             }
             else
             {
-                printOrder(foundOrder);
-                orderTreeRoot = removeOrder(orderTreeRoot, orderNumber);
-                cout << "Collected!" << endl;
+                cout << "Delivery queue is empty. No orders to deliver." << endl;
             }
             break;
         }
 
-        case 5:
+        case 5: 
+        {
+            cout << "Enter Order ID to Collect: ";
+            cin >> orderNumber;
+
+            OrderNode *foundOrder = findOrder(orderTreeRoot, orderNumber);
+
+            if (!foundOrder)
+            {
+                cout << "Order not found in pending pickup orders!" << endl;
+            }
+            
+            else
+            {
+                Order collectedOrder(foundOrder->buyerName, foundOrder->itemName, foundOrder->itemCount, foundOrder->totalCost, foundOrder->orderNumber);
+                storePtr->archiveOrder(collectedOrder);
+
+                orderTreeRoot = removeOrder(orderTreeRoot, orderNumber);
+                cout << endl << "Order #" << orderNumber << " has been collected!" << endl;
+            }
+            break;
+        }
+
+        case 6: 
         {
             storePtr->displayDeliveryOrders();
             break;
         }
 
-        case 6:
+        case 7: // AVL In-Order Traversal
         {
             if (!orderTreeRoot)
             {
-                cout << "No orders." << endl;
+                cout << "No pending pickup orders." << endl;
             }
+            
             else
             {
+                cout << endl << "===== PENDING PICKUP ORDERS =====" << endl;
                 showAllOrders(orderTreeRoot);
             }
+            
             break;
         }
 
-        case 7:
+        case 8: 
+        {
+            storePtr->displayCompletedOrders();
+            break;
+        }
+
+        case 9: 
         {
             loadBenchmarks("orders_data.txt");
             runPerformanceTest();
             break;
         }
 
-        case 0:
+        case 0: 
         {
-            cout << "Exiting." << endl;
+            cout << "Exiting... Thank you for using " << storePtr->storeName << "!~" << endl;
             break;
         }
 
         default:
         {
-            cout << "Invalid Option." << endl;
+            cout << "Invalid Option!! Please try again." << endl;
         }
         }
     } while (choice != 0);
 
     cleanupSystem();
     return 0;
-
 }
